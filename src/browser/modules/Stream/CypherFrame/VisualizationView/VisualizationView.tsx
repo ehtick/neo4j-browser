@@ -26,30 +26,30 @@ import { Bus } from 'suber'
 
 import { GraphModel, GraphVisualizer } from 'neo4j-arc/graph-visualization'
 
-import { StyledVisContainer } from './VisualizationView.styled'
 import { resultHasTruncatedFields } from 'browser/modules/Stream/CypherFrame/helpers'
-import bolt from 'services/bolt/bolt'
 import {
   BasicNode,
   BasicNodesAndRels,
-  BasicRelationship
+  BasicRelationship,
+  deepEquals
 } from 'neo4j-arc/common'
+import bolt from 'services/bolt/bolt'
 import { NEO4J_BROWSER_USER_ACTION_QUERY } from 'services/bolt/txMetadata'
-import { deepEquals } from 'neo4j-arc/common'
 import { GlobalState } from 'shared/globalState'
-import { CYPHER_REQUEST } from 'shared/modules/cypher/cypherDuck'
+import { ROUTED_CYPHER_READ_REQUEST } from 'shared/modules/cypher/cypherDuck'
+import {
+  getNodePropertiesExpandedByDefault,
+  setNodePropertiesExpandedByDefault
+} from 'shared/modules/frames/framesDuck'
 import * as grassActions from 'shared/modules/grass/grassDuck'
 import {
   getMaxFieldItems,
   shouldShowWheelZoomInfo,
   update as updateSettings
 } from 'shared/modules/settings/settingsDuck'
-import {
-  getNodePropertiesExpandedByDefault,
-  setNodePropertiesExpandedByDefault
-} from 'shared/modules/frames/framesDuck'
 import { DetailsPane } from './PropertiesPanelContent/DetailsPane'
 import OverviewPane from './PropertiesPanelContent/OverviewPane'
+import { StyledVisContainer } from './VisualizationView.styled'
 
 type VisualizationState = {
   updated: number
@@ -197,8 +197,12 @@ LIMIT ${maxNewNeighbours}`
     return new Promise((resolve, reject) => {
       this.props.bus &&
         this.props.bus.self(
-          CYPHER_REQUEST,
-          { query: query, queryType: NEO4J_BROWSER_USER_ACTION_QUERY },
+          ROUTED_CYPHER_READ_REQUEST,
+          {
+            query: query,
+            queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+            useDb: this.props.result.summary.database.name
+          },
           (response: any) => {
             if (!response.success) {
               reject(new Error())
@@ -242,11 +246,12 @@ LIMIT ${maxNewNeighbours}`
     return new Promise(resolve => {
       this.props.bus &&
         this.props.bus.self(
-          CYPHER_REQUEST,
+          ROUTED_CYPHER_READ_REQUEST,
           {
             query,
             params: { existingNodeIds, newNodeIds },
-            queryType: NEO4J_BROWSER_USER_ACTION_QUERY
+            queryType: NEO4J_BROWSER_USER_ACTION_QUERY,
+            useDb: this.props.result.summary.database.name
           },
           (response: any) => {
             if (!response.success) {
